@@ -7,8 +7,8 @@ RUN apt-get update && \
     apt-get install -y wget curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Download and install the latest Jellyfin FFmpeg with detailed debugging
-RUN echo "Downloading Jellyfin FFmpeg..." && \
+# Download and install the latest Jellyfin FFmpeg (AMD64 only)
+RUN echo "Downloading Jellyfin FFmpeg for AMD64..." && \
     LATEST_DEB=$(curl -s https://repo.jellyfin.org/files/ffmpeg/ubuntu/latest-7.x/amd64/ | \
     grep -oP 'jellyfin-ffmpeg7_[^"]*\.deb' | \
     sort -V | tail -1) && \
@@ -19,7 +19,7 @@ RUN echo "Downloading Jellyfin FFmpeg..." && \
     echo "Package installed successfully" && \
     rm /tmp/jellyfin-ffmpeg.deb
 
-# Verify installation (no symlink needed - it's already installed correctly)
+# Verify installation
 RUN echo "Verifying FFmpeg installation..." && \
     dpkg -l | grep jellyfin && \
     ls -la /usr/lib/jellyfin-ffmpeg/ffmpeg && \
