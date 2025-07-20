@@ -17,14 +17,14 @@ RUN LATEST_DEB=$(curl -s https://repo.jellyfin.org/files/ffmpeg/ubuntu/latest-7.
     rm /tmp/jellyfin-ffmpeg.deb && \
     echo "Jellyfin FFmpeg installation complete"
 
-# Fix the homebridge directory permissions (this is the key fix!)
-RUN chown -R homebridge:homebridge /homebridge
-
-# Ensure the symlink exists and is correct
-RUN if [ ! -L /var/lib/homebridge ]; then \
-        rm -rf /var/lib/homebridge && \
-        ln -sf /homebridge /var/lib/homebridge; \
-    fi && \
-    ls -la /var/lib/homebridge
+# Fix ALL permission issues comprehensively
+RUN chown -R homebridge:homebridge /homebridge && \
+    chmod -R 755 /homebridge && \
+    rm -rf /var/lib/homebridge && \
+    ln -sf /homebridge /var/lib/homebridge && \
+    chown -h homebridge:homebridge /var/lib/homebridge && \
+    echo "Fixed permissions and symlink" && \
+    ls -la /var/lib/homebridge && \
+    ls -la /homebridge
 
 EXPOSE 8581
