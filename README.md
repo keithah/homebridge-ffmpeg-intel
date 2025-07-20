@@ -1,4 +1,4 @@
-# Homebridge with Jellyfin FFmpeg Intel
+# Homebridge with FFmpeg Intel hardware transcoding support
 
 A custom Docker image that combines the official [Homebridge](https://homebridge.io/) Ubuntu container with [Jellyfin's optimized FFmpeg build](https://jellyfin.org/docs/general/administration/hardware-acceleration/) for enhanced video processing capabilities.
 
@@ -16,8 +16,11 @@ This is based off the ubuntu base of the official container, so before you switc
 
 After switching to this docker
 
-You will need to update the 'Video Processor' option in your Homebridge UI to reflect the new path: /usr/lib/jellyfin-ffmpeg/ffmpeg
+Since we dont replace the stock ffmpeg, you will need to update the ffmpeg path youre using to the new one: 
 
+/usr/lib/jellyfin-ffmpeg/ffmpeg
+
+In this example, I have to change 'Video Processor' option in your Homebridge UI for the Unifi-Video plugin to reflect the new path.
 <img width="292" height="622" alt="image" src="https://github.com/user-attachments/assets/0b6558e6-97f2-4f31-9627-d4b7f5a290d5" />
 
 
