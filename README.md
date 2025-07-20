@@ -1,34 +1,34 @@
 # Homebridge with Jellyfin FFmpeg Intel
 
-A custom Docker image that combines the official [Homebridge](https://homebridge.io/) container with [Jellyfin's optimized FFmpeg build](https://jellyfin.org/docs/general/administration/hardware-acceleration/) for enhanced video processing capabilities.
+A custom Docker image that combines the official [Homebridge](https://homebridge.io/) Ubuntu container with [Jellyfin's optimized FFmpeg build](https://jellyfin.org/docs/general/administration/hardware-acceleration/) for enhanced video processing capabilities.
+
+This is based off the ubuntu base of the official container, so before you switch to this, you might want to make sure you're using homebridge/homebridge:ubuntu.
 
 ## 🚀 Features
 
-- **Latest Homebridge**: Always builds from the latest official Homebridge Docker image
+- **Latest Homebridge**: Always builds from the latest official Homebridge Docker image - Ubuntu version
 - **Jellyfin FFmpeg**: Includes Jellyfin's hardware-accelerated FFmpeg build with Intel Quick Sync support
 - **Automatic Updates**: GitHub Actions automatically checks for and builds new versions daily
 - **Multi-Architecture**: Supports both AMD64 and ARM64 platforms
 - **Zero Maintenance**: Set it and forget it - updates happen automatically
 
+## Usage
 
-## 🎯 Use Cases
+After switching to this docker
 
-This image is perfect for:
+You will need to update the 'Video Processor' option in your Homebridge UI to reflect the new path: /usr/lib/jellyfin-ffmpeg/ffmpeg
 
-- **Camera Streaming**: Enhanced video processing for security cameras
-- **Hardware Acceleration**: Leverage Intel Quick Sync for efficient video transcoding
-- **Homebridge Plugins**: Any plugin requiring advanced FFmpeg capabilities
-- **Low-Power Setups**: Optimized FFmpeg reduces CPU usage on Intel hardware
+<img width="292" height="622" alt="image" src="https://github.com/user-attachments/assets/0b6558e6-97f2-4f31-9627-d4b7f5a290d5" />
+
 
 ## 🔧 FFmpeg Verification
 
 To verify Jellyfin FFmpeg is properly installed:
 
-```bash
 docker exec homebridge-ffmpeg-intel /usr/lib/jellyfin-ffmpeg/ffmpeg -version
 
 **Section 8: Environment Variables**
-```markdown
+
 ## 📋 Environment Variables
 
 | Variable | Default | Description |
@@ -60,7 +60,6 @@ This image is automatically updated when:
 
 ## 🏗️ Building Locally
 
-```bash
 git clone https://github.com/keithah/homebridge-ffmpeg-intel.git
 cd homebridge-ffmpeg-intel
 docker build -t homebridge-ffmpeg-intel .
@@ -69,7 +68,6 @@ docker build -t homebridge-ffmpeg-intel .
 
 ### Container Won't Start
 
-```bash
 # Check logs
 docker logs homebridge-ffmpeg-intel
 
