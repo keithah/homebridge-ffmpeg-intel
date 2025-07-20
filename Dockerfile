@@ -1,4 +1,4 @@
-FROM homebridge/homebridge:latest
+FROM homebridge/homebridge:ubuntu
 
 USER root
 
@@ -15,12 +15,8 @@ RUN LATEST_DEB=$(curl -s https://repo.jellyfin.org/files/ffmpeg/ubuntu/latest-7.
     wget -O /tmp/jellyfin-ffmpeg.deb "https://repo.jellyfin.org/files/ffmpeg/ubuntu/latest-7.x/amd64/$LATEST_DEB" && \
     dpkg -i /tmp/jellyfin-ffmpeg.deb || apt-get install -f -y && \
     rm /tmp/jellyfin-ffmpeg.deb && \
-    echo "Jellyfin FFmpeg installed successfully"
+    echo "Jellyfin FFmpeg installation complete"
 
-# Verify installation with correct path
-RUN find /usr -name "ffmpeg" -type f 2>/dev/null | head -1 | xargs -I {} {} -version || \
-    (echo "FFmpeg not found, checking installation..." && \
-     dpkg -L jellyfin-ffmpeg7 | grep ffmpeg$ | head -1 | xargs -I {} {} -version)
-
-USER homebridge
+# Don't switch back to homebridge user - let the original entrypoint handle it
+# USER homebridge  <-- Remove this line
 EXPOSE 8581
