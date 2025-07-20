@@ -17,6 +17,14 @@ RUN LATEST_DEB=$(curl -s https://repo.jellyfin.org/files/ffmpeg/ubuntu/latest-7.
     rm /tmp/jellyfin-ffmpeg.deb && \
     echo "Jellyfin FFmpeg installation complete"
 
-# Don't switch back to homebridge user - let the original entrypoint handle it
-# USER homebridge  <-- Remove this line
+# Fix the homebridge directory permissions (this is the key fix!)
+RUN chown -R homebridge:homebridge /homebridge
+
+# Ensure the symlink exists and is correct
+RUN if [ ! -L /var/lib/homebridge ]; then \
+        rm -rf /var/lib/homebridge && \
+        ln -sf /homebridge /var/lib/homebridge; \
+    fi && \
+    ls -la /var/lib/homebridge
+
 EXPOSE 8581
