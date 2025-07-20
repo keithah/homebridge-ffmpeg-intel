@@ -17,8 +17,10 @@ RUN LATEST_DEB=$(curl -s https://repo.jellyfin.org/files/ffmpeg/ubuntu/latest-7.
     rm /tmp/jellyfin-ffmpeg.deb && \
     echo "Jellyfin FFmpeg installed successfully"
 
-# Verify installation
-RUN /usr/lib/jellyfin-ffmpeg/ffmpeg -version
+# Verify installation with correct path
+RUN find /usr -name "ffmpeg" -type f 2>/dev/null | head -1 | xargs -I {} {} -version || \
+    (echo "FFmpeg not found, checking installation..." && \
+     dpkg -L jellyfin-ffmpeg7 | grep ffmpeg$ | head -1 | xargs -I {} {} -version)
 
 USER homebridge
 EXPOSE 8581
