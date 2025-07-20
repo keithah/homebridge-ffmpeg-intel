@@ -7,24 +7,42 @@ RUN apt-get update && \
     apt-get install -y wget curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Download and install the latest Jellyfin FFmpeg
-RUN LATEST_DEB=$(curl -s https://repo.jellyfin.org/files/ffmpeg/ubuntu/latest-7.x/amd64/ | \
+# Download and install the latest Jellyfin FFmpeg with better error handling
+RUN echo "Downloading Jellyfin FFmpeg..." && \
+    LATEST_DEB=$(curl -s https://repo.jellyfin.org/files/ffmpeg/ubuntu/latest-7.x/amd64/ | \
     grep -oP 'jellyfin-ffmpeg7_[^"]*\.deb' | \
     sort -V | tail -1) && \
-    echo "Installing $LATEST_DEB" && \
+    echo "Found package: $LATEST_DEB" && \
     wget -O /tmp/jellyfin-ffmpeg.deb "https://repo.jellyfin.org/files/ffmpeg/ubuntu/latest-7.x/amd64/$LATEST_DEB" && \
-    dpkg -i /tmp/jellyfin-ffmpeg.deb || apt-get install -f -y && \
-    rm /tmp/jellyfin-ffmpeg.deb && \
-    echo "Jellyfin FFmpeg installation complete"
+    echo "Downloaded package, installing..." && \
+    dpkg -i /tmp/jellyfin-ffmpeg.deb && \
+    echo "Package installed successfully" && \
+    rm /tmp/jellyfin-ffmpeg.deb
 
-# Fix ALL permission issues comprehensively
+# Verify installation and create symlink
+RUN echo "Verifying FFmpeg installation..." && \
+    dpkg -l | grep jellyfin && \
+    dpkg -L jellyfin-ffmpeg7 | head -10 && \
+    FFMPEG_PATH=$(find /usr -name "ffmpeg" -path "*/jellyfin*" -type f 2>/dev/null | head -1) && \
+    echo "FFmpeg found at: $FFMPEG_PATH" && \
+    if [ -n "$FFMPEG_PATH" ]; then \
+        mkdir -p /usr/lib/jellyfin-ffmpeg && \
+        ln -sf "$FFMPEG_PATH" /usr/lib/jellyfin-ffmpeg/ffmpeg && \
+        echo "Created symlink" && \
+        ls -la /usr/lib/jellyfin-ffmpeg/ffmpeg && \
+        /usr/lib/jellyfin-ffmpeg/ffmpeg -version; \
+    else \
+        echo "FFmpeg not found after installation!"; \
+        exit 1; \
+    fi
+
+# Fix homebridge directory permissions
 RUN chown -R homebridge:homebridge /homebridge && \
     chmod -R 755 /homebridge && \
+    chown homebridge:homebridge /var/lib && \
+    chmod 755 /var/lib && \
     rm -rf /var/lib/homebridge && \
     ln -sf /homebridge /var/lib/homebridge && \
-    chown -h homebridge:homebridge /var/lib/homebridge && \
-    echo "Fixed permissions and symlink" && \
-    ls -la /var/lib/homebridge && \
-    ls -la /homebridge
+    chown -h homebridge:homebridge /var/lib/homebridge
 
 EXPOSE 8581
