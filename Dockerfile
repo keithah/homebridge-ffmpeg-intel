@@ -7,15 +7,17 @@ RUN apt-get update && \
     apt-get install -y wget curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Download and install the latest Jellyfin FFmpeg with better error handling
+# Download and install the latest Jellyfin FFmpeg with detailed debugging
 RUN echo "Downloading Jellyfin FFmpeg..." && \
     LATEST_DEB=$(curl -s https://repo.jellyfin.org/files/ffmpeg/ubuntu/latest-7.x/amd64/ | \
     grep -oP 'jellyfin-ffmpeg7_[^"]*\.deb' | \
     sort -V | tail -1) && \
     echo "Found package: $LATEST_DEB" && \
     wget -O /tmp/jellyfin-ffmpeg.deb "https://repo.jellyfin.org/files/ffmpeg/ubuntu/latest-7.x/amd64/$LATEST_DEB" && \
-    echo "Downloaded package, installing..." && \
-    dpkg -i /tmp/jellyfin-ffmpeg.deb && \
+    echo "Downloaded package, checking info..." && \
+    dpkg --info /tmp/jellyfin-ffmpeg.deb && \
+    echo "Attempting installation..." && \
+    dpkg -i /tmp/jellyfin-ffmpeg.deb 2>&1 || (echo "Installation failed with code $?, checking what's missing..." && apt-get update && apt-get install -f -y && dpkg -i /tmp/jellyfin-ffmpeg.deb) && \
     echo "Package installed successfully" && \
     rm /tmp/jellyfin-ffmpeg.deb
 
