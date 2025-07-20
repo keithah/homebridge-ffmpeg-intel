@@ -1,0 +1,124 @@
+name: Build and Push Homebridge with Jellyfin FFmpeg
+
+on:
+  # Run on push to main branch
+  push:
+    branches: [ main ]
+  
+  # Run on schedule (daily at 2 AM UTC)
+  schedule:
+    - cron: '0 2 * * *'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: keithah/homebridge-ffmpeg-intel
+
+jobs:
+  check-updates:
+    runs-on: ubuntu-latest
+    outputs:
+      homebridge-version: ${{ steps.versions.outputs.homebridge-version }}
+      jellyfin-version: ${{ steps.versions.outputs.jellyfin-version }}
+      should-build: ${{ steps.check.outputs.should-build }}
+    
+    steps:
+    - name: Check latest versions
+      id: versions
+      run: |
+        # Get latest Homebridge version
+        HOMEBRIDGE_VERSION=$(curl -s https://api.github.com/repos/homebridge/docker-homebridge/releases/latest | jq -r .tag_name)
+        echo "homebridge-version=$HOMEBRIDGE_VERSION" >> $GITHUB_OUTPUT
+        
+        # Get latest Jellyfin FFmpeg version
+        JELLYFIN_VERSION=$(curl -s https://repo.jellyfin.org/files/ffmpeg/ubuntu/latest-7.x/amd64/ | \
+          grep -oP 'jellyfin-ffmpeg7_[^"]*\.deb' | \
+          sort -V | tail -1 | \
+          grep -oP '7\.[0-9]+\.[0-9]+-[0-9]+')
+        echo "jellyfin-version=$JELLYFIN_VERSION" >> $GITHUB_OUTPUT
+        
+        echo "Latest Homebridge: $HOMEBRIDGE_VERSION"
+        echo "Latest Jellyfin FFmpeg: $JELLYFIN_VERSION"
+
+    - name: Check if build needed
+      id: check
+      run: |
+        # Check if our image exists and is up to date
+        IMAGE_EXISTS=$(curl -s https://hub.docker.com/v2/repositories/${{ env.IMAGE_NAME }}/tags/ | jq -r '.results[0].name // "none"')
+        EXPECTED_TAG="${{ steps.versions.outputs.homebridge-version }}-jellyfin-${{ steps.versions.outputs.jellyfin-version }}"
+        
+        if [ "$IMAGE_EXISTS" != "$EXPECTED_TAG" ]; then
+          echo "should-build=true" >> $GITHUB_OUTPUT
+          echo "Build needed: Expected $EXPECTED_TAG, found $IMAGE_EXISTS"
+        else
+          echo "should-build=false" >> $GITHUB_OUTPUT
+          echo "Build not needed: Image is up to date"
+        fi
+
+  build-and-push:
+    needs: check-updates
+    if: needs.check-updates.outputs.should-build == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.IMAGE_NAME }}
+        tags: |
+          type=raw,value=latest
+          type=raw,value=${{ needs.check-updates.outputs.homebridge-version }}-jellyfin-${{ needs.check-updates.outputs.jellyfin-version }}
+          type=raw,value=${{ needs.check-updates.outputs.homebridge-version }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        platforms: linux/amd64,linux/arm64
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Create GitHub Release
+      if: github.event_name == 'schedule'
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ needs.check-updates.outputs.homebridge-version }}-jellyfin-${{ needs.check-updates.outputs.jellyfin-version }}
+        release_name: Homebridge ${{ needs.check-updates.outputs.homebridge-version }} with Jellyfin FFmpeg ${{ needs.check-updates.outputs.jellyfin-version }}
+        body: |
+          Automated build containing:
+          - Homebridge: ${{ needs.check-updates.outputs.homebridge-version }}
+          - Jellyfin FFmpeg: ${{ needs.check-updates.outputs.jellyfin-version }}
+        draft: false
+        prerelease: false
+
+  notify:
+    needs: [check-updates, build-and-push]
+    if: always() && needs.build-and-push.result == 'success'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Send notification
+      run: |
+        echo "Successfully built and pushed new image!"
+        echo "Homebridge: ${{ needs.check-updates.outputs.homebridge-version }}"
+        echo "Jellyfin FFmpeg: ${{ needs.check-updates.outputs.jellyfin-version }}"
