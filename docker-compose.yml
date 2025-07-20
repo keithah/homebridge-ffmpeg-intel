@@ -2,15 +2,23 @@ services:
   homebridge-ffmpeg-intel:
     image: keithah/homebridge-ffmpeg-intel:latest
     container_name: homebridge-ffmpeg-intel
-    restart: unless-stopped
     network_mode: host
+    restart: unless-stopped
+    privileged: true
+    group_add:
+      - "44"
     volumes:
       - ./homebridge:/homebridge
+      - /usr/lib/x86_64-linux-gnu/dri:/usr/lib/x86_64-linux-gnu/dri:ro
+      - /lib/firmware:/lib/firmware:ro
+      - /dev:/dev
     environment:
+      - TZ=America/Los_Angeles
+      - HOMEBRIDGE_CONFIG_UI_PORT=8581
+      - ENABLE_AVAHI=1
       - PGID=1000
       - PUID=1000
       - HOMEBRIDGE_CONFIG_UI=1
-      - HOMEBRIDGE_CONFIG_UI_PORT=8581
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
 
